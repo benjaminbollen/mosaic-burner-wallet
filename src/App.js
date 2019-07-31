@@ -29,6 +29,7 @@ import History from './components/History';
 import Advanced from './components/Advanced';
 import BottomLinks from './components/BottomLinks';
 import MoreButtons from './components/MoreButtons';
+import Boost from "./components/Boost";
 import Admin from './components/Admin';
 import Vendor from './components/Vendor';
 import Vendors from './components/Vendors';
@@ -43,6 +44,11 @@ import customRPCHint from './customRPCHint.png';
 import namehash from 'eth-ens-namehash'
 import incogDetect from './services/incogDetect.js'
 import core, { mainAsset as xdai } from './core';
+
+import EIP20Token from './components/EIP20Token';
+import BaseToken from './components/BaseToken';
+import Mosaic from './mosaic/Mosaic';
+
 
 //https://github.com/lesnitsky/react-native-webview-messaging/blob/v1/examples/react-native/web/index.js
 import RNMessageChannel from 'react-native-webview-messaging';
@@ -246,6 +252,12 @@ class App extends Component {
     }else if(cachedViewSetAge < 300000 && cachedView&&cachedView!=0){
       view = cachedView
     }
+    let originMetaAccount = {
+      address: '',
+      privateKey: ''
+    };
+    let ostComposerAddress = '';
+    let valueTokenAddress = '';
     console.log("CACHED VIEW",view)
     super(props);
     this.state = {
@@ -817,6 +829,10 @@ changeAlert = (alert, hide=true) => {
     }, 2000);
   }
 };
+handleBoost(params){
+  this.boostParams = params;
+  this.changeView('boost');
+}
 goBack(){
   console.log("GO BACK")
   this.changeView('main')
@@ -1384,39 +1400,39 @@ render() {
 
           switch(view) {
             case 'main':
+              const tokens = Mosaic.getSupportedTokens();
+              const renderObject = [];
+              tokens.forEach((token)=>{
+                if (token.type === 'ERC') {
+                  renderObject.push(<EIP20Token
+                    metaAccount={metaAccount}
+                    state={this.state}
+                    address={account}
+                    openScanner={this.openScanner.bind(this)}
+                    buttonStyle={buttonStyle}
+                    changeAlert={this.changeAlert}
+                    handleBoost={this.handleBoost.bind(this)}
+                    goBack={this.goBack.bind(this)}
+                    token={token}
+                  />)
+                } else if (token.type === 'BASE') {
+                  renderObject.push(<BaseToken
+                    metaAccount={metaAccount}
+                    state={this.state}
+                    address={account}
+                    openScanner={this.openScanner.bind(this)}
+                    buttonStyle={buttonStyle}
+                    changeAlert={this.changeAlert}
+                    goBack={this.goBack.bind(this)}
+                    token={token}
+                  />);
+                }
+              });
+
             return (
               <div>
                 <div className="main-card card w-100" style={{zIndex:1}}>
-
-
-                  {extraTokens}
-
-                  <Balance
-                    icon={xdaiImg}
-                    selected={selected}
-                    text={xdai.name}
-                    amount={this.state.xdaiBalance}
-                    address={account}
-                    dollarDisplay={dollarDisplay}
-                  />
-                  <Ruler/>
-                  <Balance
-                    icon={daiImg}
-                    selected={selected}
-                    text="DAI"
-                    amount={this.state.daiBalance}
-                    address={account}
-                    dollarDisplay={dollarDisplay}
-                  />
-                  <Ruler/>
-                  <Balance
-                    icon={ethImg}
-                    selected={selected}
-                    text="ETH"
-                    amount={parseFloat(this.state.ethBalance) * parseFloat(this.state.ethprice)}
-                    address={account}
-                    dollarDisplay={dollarDisplay}
-                  />
+                  {renderObject}
                   <Ruler/>
                   {badgeDisplay}
 
@@ -1947,6 +1963,34 @@ render() {
               <Loader loaderImage={LOADERIMAGE} mainStyle={mainStyle}/>
               </div>
             );
+            case 'boost':
+              return (
+                <div>
+                  <div className="send-to-address card w-100"
+                       style={{zIndex: 1}}>
+                    <NavCard title={i18n.t('boost_title')}
+                             goBack={this.goBack.bind(this)}/>
+                    {defaultBalanceDisplay}
+                    <Boost
+                      buttonStyle={buttonStyle}
+                      web3={this.boostParams.web3}
+                      address={this.state.account}
+                      goBack={this.goBack.bind(this)}
+                      changeView={this.changeView}
+                      setReceipt={this.setReceipt}
+                      changeAlert={this.changeAlert}
+                      metaAccount={metaAccount}
+                      ostComposerAddress={Mosaic.ostComposerAddress}
+                      valueTokenAddress={this.boostParams.address}
+                      gatewayAddress={this.boostParams.gatewayAddress}
+                    />
+                  </div>
+                  <Bottom
+                    text={i18n.t('cancel')}
+                    action={this.goBack.bind(this)}
+                  />
+                </div>
+              );
             default:
             return (
               <div>unknown view</div>
